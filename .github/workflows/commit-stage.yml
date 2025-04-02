@@ -9,7 +9,7 @@ on: push
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: catalog-service
+  IMAGE_NAME: catalog-service-app
   VERSION: latest
   SPRING_PROFILES_ACTIVE: test
 
@@ -76,8 +76,13 @@ jobs:
       - name: Build and push Docker image
         run: |
           chmod +x gradlew
-          IMAGE_REF="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
+          IMAGE_NAME=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="ghcr.io/${IMAGE_NAME}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
           echo "Building image: ${IMAGE_REF}"
-          ./gradlew bootBuildImage --imageName="${IMAGE_REF}" \
-            --builder=paketobuildpacks/builder-jammy-base:latest
+          
+          ./gradlew bootBuildImage \
+            --imageName="${IMAGE_REF}" \
+            --builder=paketobuildpacks/builder-jammy-base:latest \
+            -PspringBootVersion=${{ steps.get_version.outputs.spring-boot-version }}
+          
           docker push "${IMAGE_REF}"
