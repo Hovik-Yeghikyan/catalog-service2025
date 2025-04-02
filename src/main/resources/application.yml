@@ -42,4 +42,4 @@ management:
         include: refresh
 
 polar:
-  greeting: "Welcome to the local book catalog2025!"
+  greeting: "Welcome to the local book catalog 2025!"
