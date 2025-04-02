@@ -9,7 +9,7 @@ on: push
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: catalog-service2025
+  IMAGE_NAME: catalog-service
   VERSION: latest
   SPRING_PROFILES_ACTIVE: test
 
