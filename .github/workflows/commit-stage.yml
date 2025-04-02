@@ -9,7 +9,7 @@ on: push
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: polarbookshop-catalog-service2025
+  IMAGE_NAME: catalog-service2025
   VERSION: latest
   SPRING_PROFILES_ACTIVE: test
 
@@ -76,7 +76,8 @@ jobs:
       - name: Build and push Docker image
         run: |
           chmod +x gradlew
-          ./gradlew bootBuildImage \
-            --imageName=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} \
+          IMAGE_REF="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
+          echo "Building image: ${IMAGE_REF}"
+          ./gradlew bootBuildImage --imageName="${IMAGE_REF}" \
             --builder=paketobuildpacks/builder-jammy-base:latest
-          docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+          docker push "${IMAGE_REF}"
