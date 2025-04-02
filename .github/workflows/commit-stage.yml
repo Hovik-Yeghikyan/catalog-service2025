@@ -4,7 +4,6 @@
 # documentation.
 # This workflow will build a Java project with Gradle and cache/restore any dependencies to improve the workflow execution time
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
-
 name: Commit Stage
 on: push
 
@@ -12,11 +11,22 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: polarbookshop/catalog-service
   VERSION: latest
+  SPRING_PROFILES_ACTIVE: test
 
 jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-22.04
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     permissions:
       contents: read
       security-events: write
@@ -29,22 +39,17 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: gradle
-      - name: Build, unit tests and integration tests
+      - name: Build and test
         run: |
           chmod +x gradlew
           ./gradlew build
-      - name: Code vulnerability scanning
-        uses: anchore/scan-action@v3
-        id: scan
-        with:
-          path: "${{ github.workspace }}"
-          fail-build: false
-          severity-cutoff: high
-      - name: Upload vulnerability report
-        uses: github/codeql-action/upload-sarif@v3
-        if: success() || failure()
-        with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: testpass
+      - name: CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
   package:
     name: Package and Publish
     if: ${{ github.ref == 'refs/heads/master' }}
@@ -68,18 +73,6 @@ jobs:
           chmod +x gradlew
           ./gradlew bootBuildImage \
             --imageName ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
-      - name: OCI image vulnerability scanning
-        uses: anchore/scan-action@v3
-        id: scan
-        with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
-          fail-build: false
-          severity-cutoff: high
-      - name: Upload vulnerability report
-        uses: github/codeql-action/upload-sarif@v3
-        if: success() || failure()
-        with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
       - name: Log into container registry
         uses: docker/login-action@v3
         with:
